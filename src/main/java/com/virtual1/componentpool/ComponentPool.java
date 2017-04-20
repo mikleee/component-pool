@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by misha on 18.04.17.
@@ -18,6 +19,8 @@ public class ComponentPool<K, V> {
     private final long timeToLive;
     private final PoolCleaner cleaner;
 
+    private AtomicBoolean isLocked = new AtomicBoolean(false);
+
     ComponentPool(String name, Long timeToLive) {
         this.name = name;
         this.timeToLive = timeToLive == null ? PoolConfig.getTimeToLive() : timeToLive;
@@ -25,28 +28,46 @@ public class ComponentPool<K, V> {
     }
 
     public synchronized V get(K key) {
-        ComponentWrapper<V> wrapper = registry.get(key);
-        if (wrapper != null) {
-            wrapper.updateLastAccess();
-            return wrapper.getData();
-        } else {
-            return null;
+        try {
+            waitForUnlock();
+            lock();
+            ComponentWrapper<V> wrapper = registry.get(key);
+            if (wrapper != null) {
+                wrapper.updateLastAccess();
+                return wrapper.getData();
+            } else {
+                return null;
+            }
+        } finally {
+            unlock();
         }
     }
 
     public synchronized V putIfAbsent(K key, V value) {
-        ComponentWrapper<V> wrapper = registry.get(key);
-        if (wrapper == null) {
-            wrapper = new ComponentWrapper<>(value);
-            registry.put(key, wrapper);
-        } else {
-            wrapper.updateLastAccess();
+        try {
+            waitForUnlock();
+            lock();
+            ComponentWrapper<V> wrapper = registry.get(key);
+            if (wrapper == null) {
+                wrapper = new ComponentWrapper<>(value);
+                registry.put(key, wrapper);
+            } else {
+                wrapper.updateLastAccess();
+            }
+            return wrapper.getData();
+        } finally {
+            unlock();
         }
-        return wrapper.getData();
     }
 
     public synchronized void remove(K key) {
-        registry.remove(key);
+        try {
+            waitForUnlock();
+            lock();
+            registry.remove(key);
+        } finally {
+            unlock();
+        }
     }
 
     public String getName() {
@@ -54,24 +75,49 @@ public class ComponentPool<K, V> {
     }
 
     public void destroy() {
-        cleaner.interrupt();
-        registry.clear();
+        try {
+            waitForUnlock();
+            lock();
+            cleaner.interrupt();
+            registry.clear();
+        } finally {
+            unlock();
+        }
     }
 
     synchronized void cleanExpiredElements() {
-        Set<K> toRemove = new HashSet<>();
-        long validAfter = System.currentTimeMillis() - timeToLive;
-        for (Map.Entry<K, ComponentWrapper<V>> entry : registry.entrySet()) {
-            long exceedTime = validAfter - entry.getValue().getLastAccess() ;
-            if (exceedTime >= 0) {
-                K key = entry.getKey();
-                LOGGER.trace("Component under key " + key + " in the " + name + " pool has been expired, exceed time: " + exceedTime + " ms");
-                toRemove.add(key);
+        try {
+            waitForUnlock();
+            lock();
+            Set<K> toRemove = new HashSet<>();
+            long validAfter = System.currentTimeMillis() - timeToLive;
+            for (Map.Entry<K, ComponentWrapper<V>> entry : registry.entrySet()) {
+                long exceedTime = validAfter - entry.getValue().getLastAccess();
+                if (exceedTime >= 0) {
+                    K key = entry.getKey();
+                    LOGGER.trace("Component under key " + key + " in the " + name + " pool has been expired, exceed time: " + exceedTime + " ms");
+                    toRemove.add(key);
+                }
             }
-        }
 
-        for (K k : toRemove) {
-            registry.remove(k);
+            for (K k : toRemove) {
+                registry.remove(k);
+            }
+        } finally {
+            unlock();
+        }
+    }
+
+    private void lock() {
+        isLocked.set(true);
+    }
+
+    private void unlock() {
+        isLocked.set(false);
+    }
+
+    private void waitForUnlock() {
+        while (isLocked.get()) {
         }
     }
 
