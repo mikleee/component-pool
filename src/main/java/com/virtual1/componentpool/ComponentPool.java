@@ -27,6 +27,7 @@ public class ComponentPool<K, V> {
     public synchronized V get(K key) {
         ComponentWrapper<V> wrapper = registry.get(key);
         if (wrapper != null) {
+            wrapper.updateLastAccess();
             return wrapper.getData();
         } else {
             return null;
@@ -34,12 +35,14 @@ public class ComponentPool<K, V> {
     }
 
     public synchronized V putIfAbsent(K key, V value) {
-        V v = get(key);
-        if (v == null) {
-            ComponentWrapper<V> wrapper = new ComponentWrapper<>(value);
+        ComponentWrapper<V> wrapper = registry.get(key);
+        if (wrapper == null) {
+            wrapper = new ComponentWrapper<>(value);
             registry.put(key, wrapper);
+        } else {
+            wrapper.updateLastAccess();
         }
-        return v;
+        return wrapper.getData();
     }
 
     public synchronized void remove(K key) {
@@ -59,7 +62,7 @@ public class ComponentPool<K, V> {
         Set<K> toRemove = new HashSet<>();
         long validAfter = System.currentTimeMillis() - timeToLive;
         for (Map.Entry<K, ComponentWrapper<V>> entry : registry.entrySet()) {
-            long exceedTime = validAfter - entry.getValue().getCreated() ;
+            long exceedTime = validAfter - entry.getValue().getLastAccess() ;
             if (exceedTime >= 0) {
                 K key = entry.getKey();
                 LOGGER.trace("Component under key " + key + " in the " + name + " pool has been expired, exceed time: " + exceedTime + " ms");

@@ -4,15 +4,20 @@ package com.virtual1.componentpool;
  * Created by misha on 18.04.17.
  */
 class ComponentWrapper<T> {
-    private long created = System.currentTimeMillis();
+    private long lastAccess;
     private T data;
 
     ComponentWrapper(T data) {
         this.data = data;
+        updateLastAccess();
     }
 
-    long getCreated() {
-        return created;
+    long getLastAccess() {
+        return lastAccess;
+    }
+
+    void updateLastAccess() {
+        lastAccess = System.currentTimeMillis();
     }
 
     T getData() {
