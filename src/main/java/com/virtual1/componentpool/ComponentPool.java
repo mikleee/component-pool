@@ -20,8 +20,16 @@ public class ComponentPool<K, V> {
 
     ComponentPool(String name, Long timeToLive) {
         this.name = name;
-        this.timeToLive = timeToLive == null ? PoolConfig.getTimeToLive() : timeToLive;
-        this.cleaner = new PoolCleaner(this);
+        if (timeToLive == null) {
+            timeToLive = PoolConfig.getTimeToLive();
+        }
+        if (timeToLive == -1) {
+            this.timeToLive = -1;
+            this.cleaner = null;
+        } else {
+            this.timeToLive = timeToLive;
+            this.cleaner = new PoolCleaner(this);
+        }
     }
 
     public synchronized V get(K key) {
