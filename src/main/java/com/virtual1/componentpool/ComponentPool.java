@@ -1,13 +1,11 @@
 package com.virtual1.componentpool;
 
-import com.virtual1.componentpool.exception.NotSupportedOperationException;
 import org.apache.log4j.Logger;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Mikhail Tkachenko
@@ -75,7 +73,7 @@ public class ComponentPool<K, V> {
     synchronized void cleanExpiredElements() {
         try {
             checkState();
-        } catch (NotSupportedOperationException e) {
+        } catch (UnsupportedOperationException e) {
             return;
         }
 
@@ -97,7 +95,7 @@ public class ComponentPool<K, V> {
 
     private void checkState() {
         if (state == DESTROYED_STATE_CODE) {
-            throw new NotSupportedOperationException("The pool " + name + " has already been destroyed");
+            throw new UnsupportedOperationException("The pool " + name + " has already been destroyed");
         }
     }
 

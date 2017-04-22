@@ -20,13 +20,15 @@ class PoolCleaner extends Thread {
     public void run() {
         LOGGER.debug(getName() + " has been started");
         while (!isInterrupted()) {
+            System.out.println(isInterrupted());
             try {
                 Thread.sleep(PoolConfig.getCleanSchedule());
+                LOGGER.debug("Schedule pool cleaner for pool " + pool.getName());
+                pool.cleanExpiredElements();
             } catch (InterruptedException ignore) {
                 LOGGER.debug(getName() + " has been interuprted");
+                interrupt();
             }
-            LOGGER.debug("Schedule pool cleaner for pool " + pool.getName());
-            pool.cleanExpiredElements();
         }
         LOGGER.debug(getName() + " has been stopped");
     }
