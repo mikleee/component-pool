@@ -4,6 +4,8 @@
     <bytecodeTargetLevel>
       <module name="component-pool_main" target="1.8" />
       <module name="component-pool_test" target="1.8" />
+      <module name="virtual1-component-pool_main" target="1.7" />
+      <module name="virtual1-component-pool_test" target="1.7" />
     </bytecodeTargetLevel>
   </component>
 </project>

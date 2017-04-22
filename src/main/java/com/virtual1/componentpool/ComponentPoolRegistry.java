@@ -1,40 +1,57 @@
 package com.virtual1.componentpool;
 
-import com.virtual1.componentpool.exception.NonUniquePoolNameException;
-import com.virtual1.componentpool.exception.PoolNotFoundException;
+import org.apache.log4j.Logger;
 
 import java.util.*;
 
 /**
- * Created by misha on 18.04.17.
+ * @author Mikhail Tkachenko
  */
 public class ComponentPoolRegistry {
-    private final static Map<String, ComponentPool> registry = new HashMap<>();
+    private final static Logger LOGGER = Logger.getLogger(ComponentPoolRegistry.class);
+    private final static Map<ComponentPoolKey, ComponentPool> REGISTRY = new HashMap<>();
 
-
-    public static Set<ComponentPool> getRegisteredPools() {
-        return new HashSet<>(registry.values());
+    static {
+        PoolConfig.init();
     }
 
-    public static <K, V> ComponentPool<K, V> register(String name, Long liveTime) {
-        if (registry.containsKey(name)) {
-            throw new NonUniquePoolNameException("Pool with name " + name + " has been already registered");
+    public synchronized static Set<ComponentPool> getRegisteredPools() {
+        return new HashSet<>(REGISTRY.values());
+    }
+
+    public synchronized static <K, V> ComponentPool<K, V> getOrCreate(String name) {
+        if (name == null) {
+            throw new IllegalArgumentException("Pool name cant be null");
         }
 
-        ComponentPool<K, V> pool = new ComponentPool<>(name, liveTime);
-        registry.put(name, pool);
+        ComponentPoolKey key = new ComponentPoolKey(name);
+        ComponentPool<K, V> pool = REGISTRY.get(key);
+        if (pool == null) {
+            LOGGER.info(String.format("Register new pool '%s'", name));
+            pool = new ComponentPool<>(name);
+            REGISTRY.put(key, pool);
+        } else {
+            LOGGER.debug(String.format("Pool '%s' has been registered already returning the existing one", name));
+        }
+
         return pool;
     }
 
-    public static <K, V> ComponentPool<K, V> register(String name) {
-        return register(name, null);
+    public synchronized static void destroy(String name) {
+        ComponentPoolKey key = new ComponentPoolKey(name);
+        ComponentPool pool = REGISTRY.get(key);
+        if (pool == null) {
+            LOGGER.warn(String.format("Pool '%s' cant be destroyed because it doesn't exist", name));
+        } else {
+            pool.destroy();
+            REGISTRY.remove(key);
+            LOGGER.info(String.format("Pool '%s' has been destroyed", name));
+        }
     }
 
-    public static <K, V> ComponentPool<K, V> get(String name) {
-        if (!registry.containsKey(name)) {
-            throw new PoolNotFoundException("Pool with name " + name + " hasn't been registered");
-        }
-        return (ComponentPool<K, V>) registry.get(name);
+    public synchronized static void destroy(ComponentPool pool) {
+        destroy(pool.getName());
     }
+
 
 }

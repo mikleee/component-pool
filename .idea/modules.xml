@@ -2,9 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/component-pool.iml" filepath="$PROJECT_DIR$/.idea/modules/component-pool.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/component-pool_main.iml" filepath="$PROJECT_DIR$/.idea/modules/component-pool_main.iml" group="component-pool" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/component-pool_test.iml" filepath="$PROJECT_DIR$/.idea/modules/component-pool_test.iml" group="component-pool" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/virtual1-component-pool.iml" filepath="$PROJECT_DIR$/.idea/modules/virtual1-component-pool.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/virtual1-component-pool_main.iml" filepath="$PROJECT_DIR$/.idea/modules/virtual1-component-pool_main.iml" group="virtual1-component-pool" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/virtual1-component-pool_test.iml" filepath="$PROJECT_DIR$/.idea/modules/virtual1-component-pool_test.iml" group="virtual1-component-pool" />
     </modules>
   </component>
 </project>

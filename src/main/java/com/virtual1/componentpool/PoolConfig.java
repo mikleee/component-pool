@@ -19,7 +19,7 @@ class PoolConfig {
     private static long timeToLive = 30 * 60 * 1000;
     private static long cleanSchedule = timeToLive / 2;
 
-    static {
+    static void init() {
         try {
             Properties properties = readConfig();
             applyProperties(properties);

@@ -1,38 +1,39 @@
 package com.virtual1.componentpool;
 
+import com.virtual1.componentpool.exception.NotSupportedOperationException;
 import org.apache.log4j.Logger;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Created by misha on 18.04.17.
+ * @author Mikhail Tkachenko
  */
 public class ComponentPool<K, V> {
-    private final static Logger LOGGER = Logger.getLogger(PoolCleaner.class);
-    private final ConcurrentHashMap<K, ComponentWrapper<V>> registry = new ConcurrentHashMap<>();
+    private final static int RUN_STATE_CODE = 1;
+    private final static int DESTROYED_STATE_CODE = 2;
+
+    private final static Logger LOGGER = Logger.getLogger(ComponentPool.class);
+    private final Map<K, ComponentWrapper<V>> registry = new HashMap<>();
 
     private final String name;
-    private final long timeToLive;
+    private long timeToLive;
     private final PoolCleaner cleaner;
 
-    ComponentPool(String name, Long timeToLive) {
+    private int state;
+
+    ComponentPool(String name) {
         this.name = name;
-        if (timeToLive == null) {
-            timeToLive = PoolConfig.getTimeToLive();
-        }
-        if (timeToLive == -1) {
-            this.timeToLive = -1;
-            this.cleaner = null;
-        } else {
-            this.timeToLive = timeToLive;
-            this.cleaner = new PoolCleaner(this);
-        }
+        this.timeToLive = PoolConfig.getTimeToLive();
+        this.cleaner = new PoolCleaner(this);
+        this.state = RUN_STATE_CODE;
     }
 
     public synchronized V get(K key) {
+        checkState();
         ComponentWrapper<V> wrapper = registry.get(key);
         if (wrapper != null) {
             wrapper.updateLastAccess();
@@ -43,9 +44,11 @@ public class ComponentPool<K, V> {
     }
 
 
-    public V putIfAbsent(K key, V value) {
+    public synchronized V putIfAbsent(K key, V value) {
+        checkState();
         ComponentWrapper<V> wrapper = registry.get(key);
         if (wrapper == null || (value != null && !value.equals(wrapper.getData()))) {
+            LOGGER.trace(String.format("pool '%s': put object under key '%s'", name, key));
             wrapper = new ComponentWrapper<>(value);
             registry.put(key, wrapper);
         } else {
@@ -55,6 +58,7 @@ public class ComponentPool<K, V> {
     }
 
     public synchronized void remove(K key) {
+        checkState();
         registry.remove(key);
     }
 
@@ -62,12 +66,19 @@ public class ComponentPool<K, V> {
         return name;
     }
 
-    public void destroy() {
+    void destroy() {
         cleaner.interrupt();
         registry.clear();
+        state = DESTROYED_STATE_CODE;
     }
 
     synchronized void cleanExpiredElements() {
+        try {
+            checkState();
+        } catch (NotSupportedOperationException e) {
+            return;
+        }
+
         Set<K> toRemove = new HashSet<>();
         long validAfter = System.currentTimeMillis() - timeToLive;
         for (Map.Entry<K, ComponentWrapper<V>> entry : registry.entrySet()) {
@@ -81,6 +92,12 @@ public class ComponentPool<K, V> {
 
         for (K k : toRemove) {
             registry.remove(k);
+        }
+    }
+
+    private void checkState() {
+        if (state == DESTROYED_STATE_CODE) {
+            throw new NotSupportedOperationException("The pool " + name + " has already been destroyed");
         }
     }
 
