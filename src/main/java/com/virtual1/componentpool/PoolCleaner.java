@@ -10,8 +10,8 @@ class PoolCleaner extends Thread {
 
     private final ComponentPool pool;
 
-     PoolCleaner(ComponentPool pool) {
-        super("pool-cleaner-" + pool.getName());
+    PoolCleaner(ComponentPool pool, ThreadGroup cleanersThreadGroup) {
+        super(cleanersThreadGroup, "pool-cleaner-" + pool.getName());
         this.pool = pool;
         start();
     }
@@ -20,13 +20,12 @@ class PoolCleaner extends Thread {
     public void run() {
         LOGGER.debug(getName() + " has been started");
         while (!isInterrupted()) {
-            System.out.println(isInterrupted());
             try {
                 Thread.sleep(PoolConfig.getCleanSchedule());
                 LOGGER.debug("Schedule pool cleaner for pool " + pool.getName());
                 pool.cleanExpiredElements();
             } catch (InterruptedException ignore) {
-                LOGGER.debug(getName() + " has been interuprted");
+                LOGGER.debug(getName() + " has been interrupted");
                 interrupt();
             }
         }

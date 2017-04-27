@@ -8,7 +8,7 @@ import java.util.Properties;
 
 
 /**
- * Created by misha on 18.04.17.
+ * @author Mikhail Tkachenko
  */
 class PoolConfig {
     private final static Logger LOGGER = Logger.getLogger(PoolConfig.class);

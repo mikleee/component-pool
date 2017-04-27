@@ -2,12 +2,17 @@ package com.virtual1.componentpool;
 
 import org.apache.log4j.Logger;
 
-import java.util.*;
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Mikhail Tkachenko
  */
 public class ComponentPoolRegistry {
+    final static ThreadGroup CLEANERS_THREAD_GROUP = new ThreadGroup("component-pool-cleaners");
     private final static Logger LOGGER = Logger.getLogger(ComponentPoolRegistry.class);
     private final static Map<ComponentPoolKey, ComponentPool> REGISTRY = new HashMap<>();
 
@@ -19,7 +24,7 @@ public class ComponentPoolRegistry {
         return new HashSet<>(REGISTRY.values());
     }
 
-    public synchronized static <K, V> ComponentPool<K, V> getOrCreate(String name) {
+    public synchronized static <K extends Serializable, V extends Serializable> ComponentPool<K, V> getOrCreate(String name) {
         if (name == null) {
             throw new IllegalArgumentException("Pool name cant be null");
         }
@@ -28,7 +33,7 @@ public class ComponentPoolRegistry {
         ComponentPool<K, V> pool = REGISTRY.get(key);
         if (pool == null) {
             LOGGER.info(String.format("Register new pool '%s'", name));
-            pool = new ComponentPool<>(name);
+            pool = new ComponentPool<>(name, CLEANERS_THREAD_GROUP);
             REGISTRY.put(key, pool);
         } else {
             LOGGER.debug(String.format("Pool '%s' has been registered already returning the existing one", name));

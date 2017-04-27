@@ -1,13 +1,15 @@
 package com.virtual1.componentpool;
 
+import java.io.Serializable;
+
 /**
- * Created by misha on 18.04.17.
+ * @author Mikhail Tkachenko
  */
-class ComponentWrapper<T> {
+class PoolValue<T extends Serializable> implements Serializable {
     private long lastAccess;
     private T data;
 
-    ComponentWrapper(T data) {
+    PoolValue(T data) {
         this.data = data;
         updateLastAccess();
     }
@@ -24,5 +26,7 @@ class ComponentWrapper<T> {
         return data;
     }
 
-
+    void setData(T data) {
+        this.data = data;
+    }
 }
